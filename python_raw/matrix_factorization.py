@@ -38,7 +38,21 @@ class MF:
 			print "iter: %d, error: %f" % (e, self.currentError())
 			curr_alpha = alpha - (alpha - 0.00000001) * e / epoch
 			for i, (entry, score) in enumerate(zip(self.X, self.y)):
-				error = self.nesterov_sgd(entry, score, curr_alpha)
+				# error = self.sgd(entry, score, curr_alpha)
+				# error = self.nesterov_sgd(entry, score, curr_alpha)
+				# error = self.momentum_sgd(entry, score, curr_alpha)
+				error = self.adagrad_sgd(entry, score)
+
+	def sgd(self, entry, score, alpha):
+		r, p_entry, q_entry = self.predict(entry[0], entry[1])
+		e = score - r
+		p_grad = 2 * e * q_entry
+		q_grad = 2 * e * p_entry
+		p_entry += alpha * p_grad
+		q_entry += alpha * q_grad
+		self.last_p_grad = p_grad
+		self.last_q_grad = q_grad
+		return e
 
 	def momentum_sgd(self, entry, score, alpha, momentum=0.9):
 		r, p_entry, q_entry = self.predict(entry[0], entry[1])
@@ -71,6 +85,21 @@ class MF:
 		q_entry += alpha * q_grad
 		self.last_p_grad = p_grad
 		self.last_q_grad = q_grad
+		return e
+
+	def adagrad_sgd(self, entry, score, alpha=0.01):
+		if not hasattr(self, 'G_p'):
+			self.G_p = np.zeros(self.p.shape)
+			self.G_q = np.zeros(self.q.shape)
+		r, p_entry, q_entry = self.predict(entry[0], entry[1])
+		e = score - r
+		p_grad = 2 * e * q_entry
+		q_grad = 2 * e * p_entry
+		# print alpha * p_grad / (np.sqrt(self.G_p[entry[0]] + 0.1))
+		p_entry += alpha * p_grad / (np.sqrt(self.G_p[entry[0]] + 0.1))
+		q_entry += alpha * q_grad / (np.sqrt(self.G_q[entry[1]] + 0.1))
+		self.G_p[entry[0]] += p_grad ** 2
+		self.G_q[entry[1]] += q_grad ** 2
 		return e
 
 X, y, dimU, dimI = loadBookRating()

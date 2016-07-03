@@ -9,6 +9,7 @@ import numpy as np
 import sys
 sys.path.append("../")
 from util import loadBookRating
+import random
 
 class MF:
 	def __init__(self, X, y, dimU, dimI, k=5):
@@ -40,10 +41,11 @@ class MF:
 			curr_alpha = alpha - (alpha - 0.00000001) * e / epoch
 			for i, (entry, score) in enumerate(zip(self.X, self.y)):
 				# error = self.sgd(entry, score, curr_alpha)
+				error = self.als(entry, score, curr_alpha)
 				# error = self.momentum_sgd(entry, score, curr_alpha)
 				# error = self.nesterov_sgd(entry, score, curr_alpha)
 				# error = self.adagrad_sgd(entry, score)
-				error = self.rmsprop(entry, score)
+				# error = self.rmsprop(entry, score)
 
 	def sgd(self, entry, score, alpha):
 		r, p_entry, q_entry = self.predict(entry[0], entry[1])
@@ -54,6 +56,19 @@ class MF:
 		q_entry += alpha * q_grad
 		self.last_p_grad = p_grad
 		self.last_q_grad = q_grad
+		return e
+
+	def als(self, entry, score, alpha):
+		r, p_entry, q_entry = self.predict(entry[0], entry[1])
+		e = score - r
+		if random.random() >= 0.5:
+			p_grad = 2 * e * q_entry
+			p_entry += alpha * p_grad
+			self.last_p_grad = p_grad
+		else:
+			q_grad = 2 * e * p_entry
+			q_entry += alpha * q_grad
+			self.last_q_grad = q_grad
 		return e
 
 	def momentum_sgd(self, entry, score, alpha, momentum=0.9):
